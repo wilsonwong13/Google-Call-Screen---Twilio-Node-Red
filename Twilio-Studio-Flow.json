@@ -1,0 +1,455 @@
+{
+  "description": "Call Screen Template",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "next": "setVariables",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "setVariables",
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingRequest"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "name": "greeting",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "gatherInput",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 650,
+          "y": 620
+        },
+        "loop": 1,
+        "say": "Hello, this is {{flow.variables.yourName}} Voice Bot. Please say your name and why you're calling after the beep. And I'll see if {{flow.variables.yourName}} is available to chat."
+      }
+    },
+    {
+      "name": "gatherInput",
+      "type": "gather-input-on-call",
+      "transitions": [
+        {
+          "next": "UserInput",
+          "event": "keypress"
+        },
+        {
+          "next": "thankYouMessage",
+          "event": "speech"
+        },
+        {
+          "next": "sorryMessage",
+          "event": "timeout"
+        }
+      ],
+      "properties": {
+        "play": "{{flow.variables.yourBeepAssetsUrl}}",
+        "voice": "alice",
+        "offset": {
+          "x": 670,
+          "y": 820
+        },
+        "loop": 1,
+        "finish_on_key": "#",
+        "language": "en",
+        "stop_gather": true,
+        "gather_language": "en",
+        "timeout": 7
+      }
+    },
+    {
+      "name": "thankYouMessage",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "setUrlVariable",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 650,
+          "y": 1050
+        },
+        "loop": 1,
+        "say": "Thank you, Let me see if {{flow.variables. yourName}} is available to chat"
+      }
+    },
+    {
+      "name": "sendMessage",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "callingNodeRed",
+          "event": "sent"
+        },
+        {
+          "next": "sorryMessage",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 650,
+          "y": 1500
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{flow.variables.yourPhoneNumber}}",
+        "body": "Phone call from: {{trigger.call.From}} \nMessage: {{widgets.gatherInput.SpeechResult}}",
+        "media_url": "{{flow.variables. urlLink}}"
+      }
+    },
+    {
+      "name": "callingNodeRed",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "sendCallertoQueue",
+          "event": "success"
+        },
+        {
+          "next": "sorryMessage",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 660,
+          "y": 1750
+        },
+        "method": "POST",
+        "content_type": "application/json;charset=utf-8",
+        "body": "{\n\"phone\" : \"{{trigger.call.From}}\",\n\"callSID\": \"{{trigger.call.CallSid}}\" \n}",
+        "url": "{{flow.variables.yourNodeRedDomain}}/callingNodeRed"
+      }
+    },
+    {
+      "name": "sendCallertoQueue",
+      "type": "enqueue-call",
+      "transitions": [
+        {
+          "event": "callComplete"
+        },
+        {
+          "event": "failedToEnqueue"
+        },
+        {
+          "next": "sorryMessage",
+          "event": "callFailure"
+        }
+      ],
+      "properties": {
+        "queue_name": "twilio",
+        "wait_url": "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical",
+        "offset": {
+          "x": 660,
+          "y": 1970
+        }
+      }
+    },
+    {
+      "name": "sorryMessage",
+      "type": "say-play",
+      "transitions": [
+        {
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1050,
+          "y": 1050
+        },
+        "loop": 1,
+        "say": "Sorry, {{flow.variables.yourName}}  is currently busy right now. He'll try to get back to you as soon he is free. Good bye."
+      }
+    },
+    {
+      "name": "splitOnPhoneNumber",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "event": "noMatch"
+        },
+        {
+          "next": "splitOnMessageBody",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If value equal_to YourPhoneNumber",
+              "arguments": [
+                "{{trigger.message.From}}"
+              ],
+              "type": "equal_to",
+              "value": "+13472769293"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.From}}",
+        "offset": {
+          "x": -570,
+          "y": 640
+        }
+      }
+    },
+    {
+      "name": "splitOnMessageBody",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "event": "noMatch"
+        },
+        {
+          "next": "updateCloudant",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If value equal_to accept",
+              "arguments": [
+                "{{trigger.message.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "{{flow.variables.acceptCode}}"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.Body}}",
+        "offset": {
+          "x": -570,
+          "y": 850
+        }
+      }
+    },
+    {
+      "name": "updateCloudant",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "event": "success"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -530,
+          "y": 1060
+        },
+        "method": "GET",
+        "content_type": "application/x-www-form-urlencoded;charset=utf-8",
+        "url": "{{flow.variables.yourNodeRedDomain}}/updateNodeRed"
+      }
+    },
+    {
+      "name": "setUrlVariable",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "sendMessage",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{% assign message = widgets.gatherInput.SpeechResult | split: \" \"  |  join: \"_\" %}\n{% if flow.variables.usingWatsonNLU == \"true\" %}\n  {% assign vCardEndPoint = \"vCardNlu/\"  %}\n{% else %}\n  {% assign vCardEndPoint = \"vCard/\"  %}\n{% endif %}\n{{\"https://\" | append: flow.variables.yourNodeRedDomain | append: \".mybluemix.net/\"| append: vCardEndPoint | append: trigger.call.From | append: \"/\" | append: message}}",
+            "key": "urlLink"
+          }
+        ],
+        "offset": {
+          "x": 630,
+          "y": 1270
+        }
+      }
+    },
+    {
+      "name": "setVariables",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "SplitOnChannel",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "dummyName",
+            "key": "yourName"
+          },
+          {
+            "value": "dummyNodeRedDomain",
+            "key": "yourNodeRedDomain"
+          },
+          {
+            "value": "dummyNumber",
+            "key": "yourPhoneNumber"
+          },
+          {
+            "value": "dummyBeepAssetsUrl",
+            "key": "yourBeepAssetsUrl"
+          },
+          {
+            "value": "1",
+            "key": "transferCode"
+          },
+          {
+            "value": "Accept, accept, sure, Sure",
+            "key": "acceptCode"
+          },
+          {
+            "value": "false",
+            "key": "usingWatsonNLU"
+          }
+        ],
+        "offset": {
+          "x": 60,
+          "y": 210
+        }
+      }
+    },
+    {
+      "name": "SplitOnChannel",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "event": "noMatch"
+        },
+        {
+          "next": "splitOnPhoneNumber",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Message",
+              "arguments": [
+                "{{trigger.call}}"
+              ],
+              "type": "is_blank",
+              "value": "Is Blank"
+            }
+          ]
+        },
+        {
+          "next": "greeting",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Call",
+              "arguments": [
+                "{{trigger.call}}"
+              ],
+              "type": "is_not_blank",
+              "value": "Is Not Blank"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.call}}",
+        "offset": {
+          "x": 50,
+          "y": 440
+        }
+      }
+    },
+    {
+      "name": "UserInput",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "greeting",
+          "event": "noMatch"
+        },
+        {
+          "next": "TransferMessage",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If value equal_to transferCode",
+              "arguments": [
+                "{{widgets.gatherInput.Digits}}"
+              ],
+              "type": "equal_to",
+              "value": "{{flow.variables.transferCode}}"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.gatherInput.Digits}}",
+        "offset": {
+          "x": 220,
+          "y": 1040
+        }
+      }
+    },
+    {
+      "name": "TransferMessage",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "ConnectingCall",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 260,
+          "y": 1270
+        },
+        "loop": 1,
+        "say": "Please wait a moment while I transfer your call."
+      }
+    },
+    {
+      "name": "ConnectingCall",
+      "type": "connect-call-to",
+      "transitions": [
+        {
+          "event": "callCompleted"
+        },
+        {
+          "event": "hangup"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 260,
+          "y": 1490
+        },
+        "caller_id": "{{trigger.call.To}}",
+        "noun": "number",
+        "to": "{{flow.variables.yourPhoneNumber}}",
+        "timeout": 30
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}
