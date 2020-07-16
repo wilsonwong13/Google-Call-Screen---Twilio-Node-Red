@@ -276,7 +276,7 @@
       "properties": {
         "variables": [
           {
-            "value": "{% assign message = widgets.gatherInput.SpeechResult | split: \" \"  |  join: \"_\" %}\n{% if flow.variables.usingWatsonNLU == \"true\" %}\n  {% assign vCardEndPoint = \"vCardNlu/\"  %}\n{% else %}\n  {% assign vCardEndPoint = \"vCard/\"  %}\n{% endif %}\n{{\"https://\" | append: flow.variables.yourNodeRedDomain | append: \".mybluemix.net/\"| append: vCardEndPoint | append: trigger.call.From | append: \"/\" | append: message}}",
+            "value": "{% assign message = widgets.gatherInput.SpeechResult | split: \" \"  |  join: \"_\" %}\n{% if flow.variables.usingWatsonNLU == \"true\" %}\n {% assign vCardEndPoint = \"vCardNlu/\"  %}\n{% else %}\n {% assign vCardEndPoint = \"vCard/\"  %}\n{% endif %}\n{{\"\"| append: flow.variables.yourNodeRedDomain | append: \"/\" | append: vCardEndPoint | append: trigger.call.From | append: \"/\" | append: message}}",
             "key": "urlLink"
           }
         ],
