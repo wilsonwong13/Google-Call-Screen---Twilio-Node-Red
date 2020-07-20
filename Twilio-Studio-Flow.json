@@ -200,7 +200,7 @@
                 "{{trigger.message.From}}"
               ],
               "type": "equal_to",
-              "value": "+13472769293"
+              "value": "{{flow.variables.yourPhoneNumber}}"
             }
           ]
         }
@@ -221,7 +221,7 @@
           "event": "noMatch"
         },
         {
-          "next": "updateCloudant",
+          "next": "updateNodeRed",
           "event": "match",
           "conditions": [
             {
@@ -244,7 +244,7 @@
       }
     },
     {
-      "name": "updateCloudant",
+      "name": "updateNodeRed",
       "type": "make-http-request",
       "transitions": [
         {
@@ -318,7 +318,7 @@
             "key": "transferCode"
           },
           {
-            "value": "Accept, accept, sure, Sure",
+            "value": "Accept, accept, sure, Sure, yes, yeah, connect",
             "key": "acceptCode"
           },
           {
